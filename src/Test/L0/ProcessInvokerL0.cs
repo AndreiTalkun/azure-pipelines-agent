@@ -84,9 +84,11 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests
                     long elapsedSeconds = watch.ElapsedMilliseconds / 1000;
 
                     // if cancellation fails, then execution time is more than 15 seconds
-                    long expectedSeconds = (SecondsToRun * 3) / 4;
+                    long expectedSeconds = SecondsToRun * 3 / 4;
 
                     Assert.True(elapsedSeconds <= expectedSeconds, $"cancellation failed, because task took too long to run. {elapsedSeconds}");
+
+                    Console.WriteLine($"Elapsed seconds for TestCancel test: {elapsedSeconds}");
                 }
             }
         }

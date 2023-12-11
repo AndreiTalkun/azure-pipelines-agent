@@ -10,6 +10,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
     public sealed class FakeResourceMetricsManager : AgentService, IResourceMetricsManager
     {
         public async Task Run() { }
+        public async Task RunResourceUtilizationMonitor() { }
         public void Setup(IExecutionContext context) { }
         public void SetContext(IExecutionContext context) { }
 

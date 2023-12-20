@@ -26,8 +26,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
     {
         const int ACTIVE_MODE_INTERVAL = 5000;
         const int WARNING_MESSAGE_INTERVAL = 10000;
-        const int AVALIABLE_DISC_SPACE_PERCENAGE_THRESHOLD = 5;
+        const int AVALIABLE_DISK_SPACE_PERCENAGE_THRESHOLD = 5;
         const int AVALIABLE_MEMORY_PERCENTAGE_THRESHOLD = 5;
+
         IExecutionContext _context;
 
         public void Setup(IExecutionContext context)
@@ -42,7 +43,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             }
             catch (Exception ex)
             {
-                _context.Warning($"Unable to get current process, ex:{ex.Message}");
+                _context.Warning(StringUtil.Loc("ResourceMonitorProcessError", ex.Message));
             }
         }
         public void SetContext(IExecutionContext context)
@@ -54,7 +55,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         {
             while (!_context.CancellationToken.IsCancellationRequested)
             {
-                _context.Debug($"Agent running environment resource - {GetDiskInfoString()}, {GetMemoryInfoString()}, {GetCpuInfoString()}");
+                _context.Debug(StringUtil.Loc("ResourceMonitorAgentEnvironmentResource", GetDiskInfoString(), GetMemoryInfoString(), GetCpuInfoString()));
                 await Task.Delay(ACTIVE_MODE_INTERVAL, _context.CancellationToken);
             }
         }
@@ -70,14 +71,14 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                     var freeDiskSpacePercentage = Math.Round(((diskInfo.FreeDiskSpaceMB / (double)diskInfo.TotalDiskSpaceMB) * 100.0), 2);
                     var usedDiskSpacePercentage = 100.0 - freeDiskSpacePercentage;
 
-                    if (freeDiskSpacePercentage <= AVALIABLE_DISC_SPACE_PERCENAGE_THRESHOLD)
+                    if (freeDiskSpacePercentage <= AVALIABLE_DISK_SPACE_PERCENAGE_THRESHOLD)
                     {
-                        _context.Warning($"Free disk space on volume {diskInfo.VolumeLabel} is lower than {AVALIABLE_DISC_SPACE_PERCENAGE_THRESHOLD}%; Currently used: {usedDiskSpacePercentage}%");
+                        _context.Warning(StringUtil.Loc("ResourceMonitorFreeDiskSpaceIsLowerThanThreshold", diskInfo.VolumeLabel, AVALIABLE_DISK_SPACE_PERCENAGE_THRESHOLD, usedDiskSpacePercentage));
                     }
                 }
                 catch (Exception ex)
                 {
-                    _context.Warning($"Unable to get Disk info, ex:{ex.Message}");
+                    _context.Warning(StringUtil.Loc("ResourceMonitorDiskInfoError", ex.Message));
                 }
 
                 try
@@ -89,7 +90,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
 
                     if (freeMemoryPercentage <= AVALIABLE_MEMORY_PERCENTAGE_THRESHOLD)
                     {
-                        _context.Warning($"Free memory is lower than {AVALIABLE_MEMORY_PERCENTAGE_THRESHOLD}%; Currently used: {usedMemoryPercentage}");
+                        _context.Warning(StringUtil.Loc("ResourceMonitorMemorySpaceIsLowerThanThreshold",  AVALIABLE_MEMORY_PERCENTAGE_THRESHOLD, usedMemoryPercentage));
                     }
                 }
                 catch (MemoryMonitoringUtilityIsNotAvaliableException ex)
@@ -98,7 +99,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                 }
                 catch (Exception ex)
                 {
-                    _context.Warning($"Unable to get Memory info, ex:{ex.Message}");
+                    _context.Warning(StringUtil.Loc("ResourceMonitorMemoryInfoError", ex.Message));
                 }
 
                 await Task.Delay(WARNING_MESSAGE_INTERVAL, _context.CancellationToken);
@@ -136,12 +137,12 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             {
                 var diskInfo = GetDiskInfo();
 
-                return $"Disk: Volume {diskInfo.VolumeLabel} - Available {diskInfo.FreeDiskSpaceMB:0.00} MB out of {diskInfo.TotalDiskSpaceMB:0.00} MB";
+                return StringUtil.Loc("ResourceMonitorDiskInfo", diskInfo.VolumeLabel, $"{diskInfo.FreeDiskSpaceMB:0.00}", $"{diskInfo.TotalDiskSpaceMB:0.00}");
 
             }
             catch (Exception ex)
             {
-                return $"Unable to get Disk info, ex:{ex.Message}";
+                return StringUtil.Loc("ResourceMonitorDiskInfoError", ex.Message);
             }
         }
 
@@ -151,7 +152,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         {
             if (_currentProcess == null)
             {
-                return $"Unable to get CPU info";
+                return StringUtil.Loc("ResourceMonitorCPUInfoProcessNotFound");
             }
 
             try
@@ -160,11 +161,11 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                 TimeSpan elapsedTime = DateTime.Now - _currentProcess.StartTime;
                 double cpuUsage = (totalCpuTime.TotalMilliseconds / elapsedTime.TotalMilliseconds) * 100.0;
 
-                return $"CPU: usage {cpuUsage:0.00}";
+                return StringUtil.Loc("ResourceMonitorCPUInfo", $"{cpuUsage:0.00}");
             }
             catch (Exception ex)
             {
-                return $"Unable to get CPU info, ex:{ex.Message}";
+                return StringUtil.Loc("ResourceMonitorCPUInfoError", ex.Message);
             }
         }
 
@@ -273,11 +274,11 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             {
                 var memoryInfo = GetMemoryInfo();
 
-                return $"Memory: Used {memoryInfo.UsedMemoryMB:0.00} MB out of {memoryInfo.TotalMemoryMB:0.00} MB";
+                return StringUtil.Loc("ResourceMonitorMemoryInfo", $"{memoryInfo.UsedMemoryMB:0.00}", $"{memoryInfo.TotalMemoryMB:0.00}");
             }
             catch (Exception ex)
             {
-                return $"Unable to get Memory info, ex:{ex.Message}";
+                return StringUtil.Loc("ResourceMonitorMemoryInfoError", ex.Message);
             }
         }
 

@@ -694,5 +694,5 @@
   "ResourceMonitorCPUInfoProcessNotFound": "Unable to get CPU info",
   "ResourceMonitorCPUInfoError": "Unable to get CPU info, exception: {0}",
   "ResourceMonitorFreeDiskSpaceIsLowerThanThreshold": "Free disk space on volume {0} is lower than {1}%; Currently used: {2}%",
-  "ResourceMonitorMemorySpaceIsLowerThanThreshold": "Free memory is lower than {0}%; Currently used: {1}"
+  "ResourceMonitorMemorySpaceIsLowerThanThreshold": "Free memory is lower than {0}%; Currently used: {1}%"
 }

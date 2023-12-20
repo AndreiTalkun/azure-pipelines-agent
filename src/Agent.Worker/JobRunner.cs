@@ -116,11 +116,12 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                 resourceDiagnosticManager = HostContext.GetService<IResourceMetricsManager>();
                 resourceDiagnosticManager.Setup(jobContext);
 
-                _ = resourceDiagnosticManager.RunResourceUtilizationMonitor();
+                _ = resourceDiagnosticManager.RunMemoryUtilizationMonitor();
+                _ = resourceDiagnosticManager.RunDiskSpaceUtilizationMonitor();
 
                 if (string.Equals(systemDebug, "true", StringComparison.OrdinalIgnoreCase))
                 {
-                    _ = resourceDiagnosticManager.Run();
+                    _ = resourceDiagnosticManager.RunDebugResourceMonitor();
                 }
 
                 agentShutdownRegistration = HostContext.AgentShutdownToken.Register(() =>

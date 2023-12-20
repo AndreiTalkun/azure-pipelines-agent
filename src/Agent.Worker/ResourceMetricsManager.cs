@@ -16,8 +16,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
     [ServiceLocator(Default = typeof(ResourceMetricsManager))]
     public interface IResourceMetricsManager : IAgentService, IDisposable
     {
-        Task Run();
-        Task RunResourceUtilizationMonitor();
+        Task RunDebugResourceMonitor();
+        Task RunMemoryUtilizationMonitor();
+        Task RunDiskSpaceUtilizationMonitor();
         void Setup(IExecutionContext context);
         void SetContext(IExecutionContext context);
     }
@@ -51,7 +52,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             ArgUtil.NotNull(context, nameof(context));
             _context = context;
         }
-        public async Task Run()
+        public async Task RunDebugResourceMonitor()
         {
             while (!_context.CancellationToken.IsCancellationRequested)
             {
@@ -60,7 +61,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             }
         }
 
-        public async Task RunResourceUtilizationMonitor() 
+        public async Task RunDiskSpaceUtilizationMonitor() 
         {
             while (!_context.CancellationToken.IsCancellationRequested)
             {
@@ -73,7 +74,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
 
                     if (freeDiskSpacePercentage <= AVALIABLE_DISK_SPACE_PERCENAGE_THRESHOLD)
                     {
-                        _context.Warning(StringUtil.Loc("ResourceMonitorFreeDiskSpaceIsLowerThanThreshold", diskInfo.VolumeLabel, AVALIABLE_DISK_SPACE_PERCENAGE_THRESHOLD, usedDiskSpacePercentage));
+                        _context.Warning(StringUtil.Loc("ResourceMonitorFreeDiskSpaceIsLowerThanThreshold", diskInfo.VolumeLabel, AVALIABLE_DISK_SPACE_PERCENAGE_THRESHOLD, $"{usedDiskSpacePercentage:0.00}"));
                     }
                 }
                 catch (Exception ex)
@@ -81,6 +82,14 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                     _context.Warning(StringUtil.Loc("ResourceMonitorDiskInfoError", ex.Message));
                 }
 
+                await Task.Delay(WARNING_MESSAGE_INTERVAL, _context.CancellationToken);
+            }
+        }
+
+        public async Task RunMemoryUtilizationMonitor()
+        {
+            while (!_context.CancellationToken.IsCancellationRequested)
+            {
                 try
                 {
                     var memoryInfo = GetMemoryInfo();
@@ -90,7 +99,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
 
                     if (freeMemoryPercentage <= AVALIABLE_MEMORY_PERCENTAGE_THRESHOLD)
                     {
-                        _context.Warning(StringUtil.Loc("ResourceMonitorMemorySpaceIsLowerThanThreshold",  AVALIABLE_MEMORY_PERCENTAGE_THRESHOLD, usedMemoryPercentage));
+                        _context.Warning(StringUtil.Loc("ResourceMonitorMemorySpaceIsLowerThanThreshold", AVALIABLE_MEMORY_PERCENTAGE_THRESHOLD, $"{usedMemoryPercentage:0.00}"));
                     }
                 }
                 catch (MemoryMonitoringUtilityIsNotAvaliableException ex)

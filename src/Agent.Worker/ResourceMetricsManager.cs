@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -9,7 +10,6 @@ using System.Threading.Tasks;
 using Agent.Sdk;
 
 using Microsoft.VisualStudio.Services.Agent.Util;
-using static Microsoft.VisualStudio.Services.Agent.Worker.ResourceMetricsManager;
 
 namespace Microsoft.VisualStudio.Services.Agent.Worker
 {
@@ -92,6 +92,10 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                         _context.Warning($"Free memory is lower than {AVALIABLE_MEMORY_PERCENTAGE_THRESHOLD}%; Currently used: {usedMemoryPercentage}");
                     }
                 }
+                catch (MemoryMonitoringUtilityIsNotAvaliableException ex)
+                {
+                    Trace.Warning($"\"free\" utility is not found on the host system, unable to get memory info; {ex.Message}");
+                }
                 catch (Exception ex)
                 {
                     _context.Warning($"Unable to get Memory info, ex:{ex.Message}");
@@ -164,6 +168,16 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             }
         }
 
+        // Some compact Linux distributives like UBI may not have "free" utility installed,
+        // but we don't want to break currently existing pipelines, so ADO warning should be mitigated to the trace warning
+        public class MemoryMonitoringUtilityIsNotAvaliableException : Exception
+        {
+            public MemoryMonitoringUtilityIsNotAvaliableException(string message)
+                : base(message)
+            {
+            }
+        }
+
         public struct MemoryInfo
         {
             public int TotalMemoryMB;
@@ -199,26 +213,32 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
 
             if (PlatformUtil.RunningOnLinux)
             {
-                processStartInfo.FileName = "/bin/sh";
-                processStartInfo.Arguments = "-c \"free -m\"";
-                processStartInfo.RedirectStandardOutput = true;
-
-                using (var process = Process.Start(processStartInfo))
+                try
                 {
-                    processStartInfoOutput = process.StandardOutput.ReadToEnd();
+                    processStartInfo.FileName = "free";
+                    processStartInfo.Arguments = "-m";
+                    processStartInfo.RedirectStandardOutput = true;
+
+                    using (var process = Process.Start(processStartInfo))
+                    {
+                        processStartInfoOutput = process.StandardOutput.ReadToEnd();
+                    }
+
+                    var processStartInfoOutputString = processStartInfoOutput.Split("\n");
+                    var memoryInfoString = processStartInfoOutputString[1].Split(" ", StringSplitOptions.RemoveEmptyEntries);
+
+                    memoryInfo.TotalMemoryMB = Int32.Parse(memoryInfoString[1]);
+                    memoryInfo.UsedMemoryMB = Int32.Parse(memoryInfoString[2]);
                 }
-
-                var processStartInfoOutputString = processStartInfoOutput.Split("\n");
-                var memoryInfoString = processStartInfoOutputString[1].Split(" ", StringSplitOptions.RemoveEmptyEntries);
-
-                memoryInfo.TotalMemoryMB = Int32.Parse(memoryInfoString[1]);
-                memoryInfo.UsedMemoryMB = Int32.Parse(memoryInfoString[2]);
+                catch (Win32Exception e)
+                {
+                    throw new MemoryMonitoringUtilityIsNotAvaliableException(e.Message);
+                }
             }
 
             if (PlatformUtil.RunningOnMacOS)
             {
-                processStartInfo.FileName = "/bin/sh";
-                processStartInfo.Arguments = "-c \"vm_stat\"";
+                processStartInfo.FileName = "vm_stat";
                 processStartInfo.RedirectStandardOutput = true;
 
                 using (var process = Process.Start(processStartInfo))

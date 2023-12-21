@@ -75,11 +75,15 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                     if (freeDiskSpacePercentage <= AVALIABLE_DISK_SPACE_PERCENAGE_THRESHOLD)
                     {
                         _context.Warning(StringUtil.Loc("ResourceMonitorFreeDiskSpaceIsLowerThanThreshold", diskInfo.VolumeLabel, AVALIABLE_DISK_SPACE_PERCENAGE_THRESHOLD, $"{usedDiskSpacePercentage:0.00}"));
+                        
+                        break;
                     }
                 }
                 catch (Exception ex)
                 {
                     _context.Warning(StringUtil.Loc("ResourceMonitorDiskInfoError", ex.Message));
+
+                    break;
                 }
 
                 await Task.Delay(WARNING_MESSAGE_INTERVAL, _context.CancellationToken);
@@ -100,15 +104,21 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                     if (freeMemoryPercentage <= AVALIABLE_MEMORY_PERCENTAGE_THRESHOLD)
                     {
                         _context.Warning(StringUtil.Loc("ResourceMonitorMemorySpaceIsLowerThanThreshold", AVALIABLE_MEMORY_PERCENTAGE_THRESHOLD, $"{usedMemoryPercentage:0.00}"));
+                        
+                        break;
                     }
                 }
                 catch (MemoryMonitoringUtilityIsNotAvaliableException ex)
                 {
                     Trace.Warning($"\"free\" utility is not found on the host system, unable to get memory info; {ex.Message}");
+
+                    break;
                 }
                 catch (Exception ex)
                 {
                     _context.Warning(StringUtil.Loc("ResourceMonitorMemoryInfoError", ex.Message));
+
+                    break;
                 }
 
                 await Task.Delay(WARNING_MESSAGE_INTERVAL, _context.CancellationToken);

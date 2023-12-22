@@ -270,18 +270,18 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
 
                 var pageSize = Int32.Parse(processStartInfoOutputString[0].Split(" ", StringSplitOptions.RemoveEmptyEntries)[7]);
 
-                var pagesFree = Int32.Parse(processStartInfoOutputString[1].Split(" ", StringSplitOptions.RemoveEmptyEntries)[2]);
-                var pagesActive = Int32.Parse(processStartInfoOutputString[2].Split(" ", StringSplitOptions.RemoveEmptyEntries)[2]);
-                var pagesInactive = Int32.Parse(processStartInfoOutputString[3].Split(" ", StringSplitOptions.RemoveEmptyEntries)[2]);
-                var pagesSpeculative = Int32.Parse(processStartInfoOutputString[4].Split(" ", StringSplitOptions.RemoveEmptyEntries)[2]);
-                var pagesWiredDown = Int32.Parse(processStartInfoOutputString[6].Split(" ", StringSplitOptions.RemoveEmptyEntries)[3]);
-                var pagesOccupied = Int32.Parse(processStartInfoOutputString[16].Split(" ", StringSplitOptions.RemoveEmptyEntries)[4]);
+                var pagesFree = Int64.Parse(processStartInfoOutputString[1].Split(" ", StringSplitOptions.RemoveEmptyEntries)[2].Trim('.'));
+                var pagesActive = Int64.Parse(processStartInfoOutputString[2].Split(" ", StringSplitOptions.RemoveEmptyEntries)[2].Trim('.'));
+                var pagesInactive = Int64.Parse(processStartInfoOutputString[3].Split(" ", StringSplitOptions.RemoveEmptyEntries)[2].Trim('.'));
+                var pagesSpeculative = Int64.Parse(processStartInfoOutputString[4].Split(" ", StringSplitOptions.RemoveEmptyEntries)[2].Trim('.'));
+                var pagesWiredDown = Int64.Parse(processStartInfoOutputString[6].Split(" ", StringSplitOptions.RemoveEmptyEntries)[3].Trim('.'));
+                var pagesOccupied = Int64.Parse(processStartInfoOutputString[16].Split(" ", StringSplitOptions.RemoveEmptyEntries)[4].Trim('.'));
 
                 var freeMemory = (pagesFree + pagesInactive) * pageSize;
                 var usedMemory = (pagesActive + pagesSpeculative + pagesWiredDown + pagesOccupied) * pageSize;
 
-                memoryInfo.TotalMemoryMB = (freeMemory + usedMemory) / 1048576;
-                memoryInfo.UsedMemoryMB = usedMemory / 1048576;
+                memoryInfo.TotalMemoryMB = (int)((freeMemory + usedMemory) / 1048576);
+                memoryInfo.UsedMemoryMB = (int)(usedMemory / 1048576);
             }
 
             return memoryInfo;

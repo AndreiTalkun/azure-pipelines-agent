@@ -110,7 +110,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                 }
                 catch (MemoryMonitoringUtilityIsNotAvaliableException ex)
                 {
-                    Trace.Warning($"\"free\" utility is not found on the host system, unable to get memory info; {ex.Message}");
+                    Trace.Warning($"Unable to get memory info using \"free\" utility; {ex.Message}");
 
                     break;
                 }
@@ -246,6 +246,11 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
 
                     var processStartInfoOutputString = processStartInfoOutput.Split("\n");
                     var memoryInfoString = processStartInfoOutputString[1].Split(" ", StringSplitOptions.RemoveEmptyEntries);
+
+                    if (memoryInfoString.Length != 3)
+                    {
+                        throw new MemoryMonitoringUtilityIsNotAvaliableException("Utility has non-default output");
+                    }
 
                     memoryInfo.TotalMemoryMB = Int32.Parse(memoryInfoString[1]);
                     memoryInfo.UsedMemoryMB = Int32.Parse(memoryInfoString[2]);

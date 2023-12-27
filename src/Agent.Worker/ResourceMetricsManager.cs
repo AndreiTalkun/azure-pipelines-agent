@@ -247,7 +247,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                     var processStartInfoOutputString = processStartInfoOutput.Split("\n");
                     var memoryInfoString = processStartInfoOutputString[1].Split(" ", StringSplitOptions.RemoveEmptyEntries);
 
-                    if (memoryInfoString.Length != 3)
+                    if (memoryInfoString.Length != 7)
                     {
                         throw new MemoryMonitoringUtilityIsNotAvaliableException("Utility has non-default output");
                     }

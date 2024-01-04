@@ -1,18 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using Agent.Sdk;
+using Microsoft.VisualStudio.Services.Agent.Util;
+using Microsoft.VisualStudio.Services.Agent.Worker.Telemetry;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
-
-using Agent.Sdk;
-
-using Microsoft.VisualStudio.Services.Agent.Util;
-using Microsoft.VisualStudio.Services.Agent.Worker.Telemetry;
-using Newtonsoft.Json;
 
 namespace Microsoft.VisualStudio.Services.Agent.Worker
 {
@@ -22,7 +20,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         Task RunDebugResourceMonitor();
         Task RunMemoryUtilizationMonitor();
         Task RunDiskSpaceUtilizationMonitor();
-        Task RunCpuUtilizationMonitor();
+        Task RunCpuUtilizationMonitor(string taskId);
         void Setup(IExecutionContext context);
         void SetContext(IExecutionContext context);
     }
@@ -66,14 +64,16 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             }
         }
 
-        private void PublishTelemetry(string message)
+        private void PublishTelemetry(string message, string taskId)
         {
             try
             {
                 Dictionary<string, string> telemetryData = new Dictionary<string, string>
                         {
+                            { "TaskId", taskId },
                             { "JobId", _context.Variables.System_JobId.ToString() },
-                            { "Warning", message }, //TaskName
+                            { "PlanId", _context.Variables.Get(Constants.Variables.System.PlanId) },
+                            { "Warning", message }
                         };
 
                 var cmd = new Command("telemetry", "publish")
@@ -81,14 +81,14 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                     Data = JsonConvert.SerializeObject(telemetryData, Formatting.None)
                 };
 
-                cmd.Properties.Add("area", "PipelinesTasks");
+                cmd.Properties.Add("area", "AzurePipelinesAgent");
                 cmd.Properties.Add("feature", "ResourceUtilization");
 
                 var publishTelemetryCmd = new TelemetryCommandExtension();
                 publishTelemetryCmd.Initialize(HostContext);
                 publishTelemetryCmd.ProcessCommand(_context, cmd);
             }
-            catch (NullReferenceException ex)
+            catch (Exception ex)
             {
                 _context.Debug(ex.ToString());
             }
@@ -158,7 +158,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             }
         }
 
-        public async Task RunCpuUtilizationMonitor()
+        public async Task RunCpuUtilizationMonitor(string taskId)
         {
             while (!_context.CancellationToken.IsCancellationRequested)
             {
@@ -171,7 +171,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                     {
                         string message = $"CPU usage is higher than {AVALIABLE_CPU_PERCENTAGE_THRESHOLD}%; currently used: {usedCpuPercentage:0.00}%";
 
-                        PublishTelemetry(message);
+                        PublishTelemetry(message, taskId);
 
                         break;
                     }

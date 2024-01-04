@@ -402,6 +402,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                 if (enableResourceUtilizationWarnings) {
                     _ = resourceDiagnosticManager.RunMemoryUtilizationMonitor();
                     _ = resourceDiagnosticManager.RunDiskSpaceUtilizationMonitor();
+                    _ = resourceDiagnosticManager.RunCpuUtilizationMonitor();
                 }
 
                 // Run the task.

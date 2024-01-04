@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -10,6 +11,8 @@ using System.Threading.Tasks;
 using Agent.Sdk;
 
 using Microsoft.VisualStudio.Services.Agent.Util;
+using Microsoft.VisualStudio.Services.Agent.Worker.Telemetry;
+using Newtonsoft.Json;
 
 namespace Microsoft.VisualStudio.Services.Agent.Worker
 {
@@ -19,6 +22,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         Task RunDebugResourceMonitor();
         Task RunMemoryUtilizationMonitor();
         Task RunDiskSpaceUtilizationMonitor();
+        Task RunCpuUtilizationMonitor();
         void Setup(IExecutionContext context);
         void SetContext(IExecutionContext context);
     }
@@ -29,6 +33,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         const int WARNING_MESSAGE_INTERVAL = 10000;
         const int AVALIABLE_DISK_SPACE_PERCENAGE_THRESHOLD = 5;
         const int AVALIABLE_MEMORY_PERCENTAGE_THRESHOLD = 5;
+        const int AVALIABLE_CPU_PERCENTAGE_THRESHOLD = 5;
 
         IExecutionContext _context;
 
@@ -58,6 +63,34 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             {
                 _context.Debug(StringUtil.Loc("ResourceMonitorAgentEnvironmentResource", GetDiskInfoString(), GetMemoryInfoString(), GetCpuInfoString()));
                 await Task.Delay(ACTIVE_MODE_INTERVAL, _context.CancellationToken);
+            }
+        }
+
+        private void PublishTelemetry(string message)
+        {
+            try
+            {
+                Dictionary<string, string> telemetryData = new Dictionary<string, string>
+                        {
+                            { "JobId", _context.Variables.System_JobId.ToString() },
+                            { "Warning", message }, //TaskName
+                        };
+
+                var cmd = new Command("telemetry", "publish")
+                {
+                    Data = JsonConvert.SerializeObject(telemetryData, Formatting.None)
+                };
+
+                cmd.Properties.Add("area", "PipelinesTasks");
+                cmd.Properties.Add("feature", "ResourceUtilization");
+
+                var publishTelemetryCmd = new TelemetryCommandExtension();
+                publishTelemetryCmd.Initialize(HostContext);
+                publishTelemetryCmd.ProcessCommand(_context, cmd);
+            }
+            catch (NullReferenceException ex)
+            {
+                _context.Debug(ex.ToString());
             }
         }
 
@@ -125,6 +158,36 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             }
         }
 
+        public async Task RunCpuUtilizationMonitor()
+        {
+            while (!_context.CancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    var usedCpuPercentage = GetCpuInfo();
+                    var freeCpuPercentage = 100.0 - usedCpuPercentage;
+
+                    if (freeCpuPercentage <= AVALIABLE_CPU_PERCENTAGE_THRESHOLD)
+                    {
+                        string message = $"CPU usage is higher than {AVALIABLE_CPU_PERCENTAGE_THRESHOLD}%; currently used: {usedCpuPercentage:0.00}%";
+
+                        PublishTelemetry(message);
+
+                        break;
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    Trace.Warning($"Unable to get CPU info; {ex.Message}");
+
+                    break;
+                }
+
+                await Task.Delay(WARNING_MESSAGE_INTERVAL, _context.CancellationToken);
+            }
+        }
+
         public struct DiskInfo
         {
             public long TotalDiskSpaceMB;
@@ -167,20 +230,25 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
 
         private Process _currentProcess;
 
-        public string GetCpuInfoString()
+        public double GetCpuInfo()
         {
             if (_currentProcess == null)
             {
-                return StringUtil.Loc("ResourceMonitorCPUInfoProcessNotFound");
+                throw new Exception("Current process is unavailable");
             }
 
+            TimeSpan totalCpuTime = _currentProcess.TotalProcessorTime;
+            TimeSpan elapsedTime = DateTime.Now - _currentProcess.StartTime;
+            double cpuUsage = (totalCpuTime.TotalMilliseconds / elapsedTime.TotalMilliseconds) * 100.0;
+
+            return cpuUsage;
+        }
+
+        public string GetCpuInfoString()
+        {
             try
             {
-                TimeSpan totalCpuTime = _currentProcess.TotalProcessorTime;
-                TimeSpan elapsedTime = DateTime.Now - _currentProcess.StartTime;
-                double cpuUsage = (totalCpuTime.TotalMilliseconds / elapsedTime.TotalMilliseconds) * 100.0;
-
-                return StringUtil.Loc("ResourceMonitorCPUInfo", $"{cpuUsage:0.00}");
+                return StringUtil.Loc("ResourceMonitorCPUInfo", $"{GetCpuInfo():0.00}");
             }
             catch (Exception ex)
             {

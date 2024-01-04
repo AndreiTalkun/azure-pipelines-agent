@@ -11,6 +11,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
         public async Task RunDebugResourceMonitor() { }
         public async Task RunMemoryUtilizationMonitor() { }
         public async Task RunDiskSpaceUtilizationMonitor() { }
+        public async Task RunCpuUtilizationMonitor() { }
         public void Setup(IExecutionContext context) { }
         public void SetContext(IExecutionContext context) { }
 

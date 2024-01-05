@@ -31,7 +31,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         const int WARNING_MESSAGE_INTERVAL = 10000;
         const int AVALIABLE_DISK_SPACE_PERCENAGE_THRESHOLD = 5;
         const int AVALIABLE_MEMORY_PERCENTAGE_THRESHOLD = 5;
-        const int AVALIABLE_CPU_PERCENTAGE_THRESHOLD = 5;
+        const int CPU_UTILIZATION_PERCENTAGE_THRESHOLD = 95;
 
         IExecutionContext _context;
 
@@ -165,11 +165,10 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                 try
                 {
                     var usedCpuPercentage = GetCpuInfo();
-                    var freeCpuPercentage = 100.0 - usedCpuPercentage;
 
-                    if (freeCpuPercentage <= AVALIABLE_CPU_PERCENTAGE_THRESHOLD)
+                    if (usedCpuPercentage >= CPU_UTILIZATION_PERCENTAGE_THRESHOLD)
                     {
-                        string message = $"CPU usage is higher than {AVALIABLE_CPU_PERCENTAGE_THRESHOLD}%; currently used: {usedCpuPercentage:0.00}%";
+                        string message = $"CPU utilization is higher than {CPU_UTILIZATION_PERCENTAGE_THRESHOLD}%; currently used: {usedCpuPercentage:0.00}%";
 
                         PublishTelemetry(message, taskId);
 

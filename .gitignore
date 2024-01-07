@@ -26,3 +26,5 @@ src/Misc/dotnet-install.*
 
 #generated
 src/Microsoft.VisualStudio.Services.Agent/BuildConstants.cs
+
+#useless comment
